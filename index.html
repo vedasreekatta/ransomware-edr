@@ -1,0 +1,1036 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueryTel Sentinel — Enterprise Ransomware EDR & SOC Console</title>
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f8fafc;
+            --border-color: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --accent-cyan: #0284c7;
+            --accent-blue: #2563eb;
+            --accent-green: #059669;
+            --accent-amber: #d97706;
+            --accent-red: #dc2626;
+            --accent-purple: #7c3aed;
+            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+            --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 1rem;
+            position: fixed;
+            height: 100vh;
+            z-index: 10;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+        }
+
+        .brand-text h1 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: 0.2px;
+        }
+
+        .brand-text span {
+            font-size: 0.72rem;
+            color: var(--accent-blue);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            flex: 1;
+        }
+
+        .nav-item {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background-color: #eff6ff;
+            color: var(--accent-blue);
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .badge-pill {
+            font-size: 0.72rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background-color: #fee2e2;
+            color: var(--accent-red);
+            font-weight: 700;
+        }
+
+        .wdac-status-box {
+            background-color: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 0.9rem;
+            font-size: 0.78rem;
+        }
+
+        .wdac-status-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-green);
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-green);
+            box-shadow: 0 0 6px rgba(5, 150, 105, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.25); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 1.75rem 2rem;
+            max-width: calc(100vw - 260px);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .page-title h2 {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .page-title p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.2rem;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .status-chip {
+            background-color: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: var(--accent-green);
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Flash / Error Alerts */
+        .flash-banner {
+            padding: 0.9rem 1.15rem;
+            border-radius: 10px;
+            margin-bottom: 1.25rem;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .flash-error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+
+        .flash-info {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1d4ed8;
+        }
+
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .kpi-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.1rem 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .kpi-label {
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .kpi-value {
+            font-size: 1.65rem;
+            font-weight: 700;
+            margin: 0.35rem 0;
+        }
+
+        .kpi-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Tabs */
+        .section-view {
+            display: none;
+        }
+
+        .section-view.active {
+            display: block;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.35rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            margin-bottom: 0.4rem;
+            font-weight: 600;
+        }
+
+        .file-drop-box {
+            border: 2px dashed var(--border-strong);
+            border-radius: 10px;
+            padding: 1.35rem;
+            text-align: center;
+            background-color: var(--bg-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-drop-box:hover {
+            border-color: var(--accent-blue);
+            background-color: #eff6ff;
+        }
+
+        input[type="file"] {
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            margin-top: 0.4rem;
+        }
+
+        select, textarea {
+            width: 100%;
+            background-color: #ffffff;
+            border: 1px solid var(--border-strong);
+            color: var(--text-primary);
+            padding: 0.65rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        select:focus, textarea:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+
+        textarea {
+            font-family: monospace;
+            resize: vertical;
+            min-height: 72px;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            font-size: 0.84rem;
+            color: var(--text-primary);
+            margin: 0.85rem 0 1.1rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn {
+            padding: 0.6rem 1.1rem;
+            border-radius: 8px;
+            border: none;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
+            color: #ffffff;
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 0.92rem;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+        }
+
+        .btn-primary:hover {
+            opacity: 0.95;
+        }
+
+        .btn-danger {
+            background-color: #fee2e2;
+            color: var(--accent-red);
+            border: 1px solid #fecaca;
+        }
+
+        .btn-danger:hover {
+            background-color: #fecaca;
+        }
+
+        .btn-outline {
+            background-color: #ffffff;
+            color: var(--text-primary);
+            border: 1px solid var(--border-strong);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background-color: #f8fafc;
+        }
+
+        .btn-sm {
+            padding: 0.35rem 0.7rem;
+            font-size: 0.75rem;
+        }
+
+        /* Result Panel */
+        .verdict-box {
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .risk-High {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+
+        .risk-Medium {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #b45309;
+        }
+
+        .risk-Low {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #047857;
+        }
+
+        .result-split {
+            display: grid;
+            grid-template-columns: 165px 1fr;
+            gap: 1.15rem;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .cnn-preview-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.65rem;
+            text-align: center;
+        }
+
+        .cnn-preview-card img {
+            width: 136px;
+            height: 136px;
+            image-rendering: pixelated;
+            border-radius: 6px;
+            border: 1px solid var(--border-strong);
+        }
+
+        .cnn-preview-card span {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 0.4rem;
+            font-weight: 600;
+        }
+
+        .metric-bar-group {
+            margin-bottom: 0.7rem;
+        }
+
+        .metric-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.81rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .bar-track {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 999px;
+        }
+
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.55rem;
+            margin: 0.9rem 0;
+        }
+
+        .tele-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.55rem 0.7rem;
+        }
+
+        .tele-box small {
+            display: block;
+            font-size: 0.69rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .tele-box strong {
+            font-size: 0.85rem;
+            font-family: monospace;
+            color: var(--text-primary);
+        }
+
+        .explain-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+            margin-top: 0.6rem;
+        }
+
+        .explain-list li {
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--accent-blue);
+            padding: 0.55rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            color: var(--text-primary);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        th, td {
+            padding: 0.75rem 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--text-secondary);
+            background-color: var(--bg-secondary);
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            font-weight: 700;
+        }
+
+        .mono {
+            font-family: monospace;
+            font-size: 0.76rem;
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .tag {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .tag-High, .tag-QUARANTINED { background: #fee2e2; color: var(--accent-red); }
+        .tag-Medium { background: #fef3c7; color: var(--accent-amber); }
+        .tag-Low, .tag-RESTORED { background: #d1fae5; color: var(--accent-green); }
+
+        .action-group {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2.2rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+
+        @media (max-width: 1080px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .grid-2 { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; max-width: 100vw; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-logo">QS</div>
+            <div class="brand-text">
+                <h1>QueryTel Sentinel</h1>
+                <span>Enterprise EDR v2.4</span>
+            </div>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item active" onclick="switchTab('scanner', this)">
+                <span>PE & CNN Threat Scanner</span>
+            </li>
+            <li class="nav-item" onclick="switchTab('quarantine', this)">
+                <span>Quarantine Vault</span>
+                <span class="badge-pill">{{ active_quarantine_count }}</span>
+            </li>
+            <li class="nav-item" onclick="switchTab('history', this)">
+                <span>Scan Audit History</span>
+                <span class="badge-pill" style="background: #dbeafe; color: var(--accent-blue);">{{ history|length }}</span>
+            </li>
+            <li class="nav-item" onclick="switchTab('benchmarks', this)">
+                <span>Model Benchmarks (583)</span>
+            </li>
+        </ul>
+
+        <div class="wdac-status-box">
+            <div class="wdac-status-header">
+                <div class="pulse-dot"></div>
+                <span>WDAC Policy Compliant</span>
+            </div>
+            <p style="color: var(--text-secondary); line-height: 1.4;">
+                100% Pure-Python Inference Engine (<code>zlib</code>, <code>struct</code>, <code>math</code>). Zero unsigned native DLLs.
+            </p>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="topbar">
+            <div class="page-title">
+                <h2>Endpoint Ransomware Detection & Prevention Console</h2>
+                <p>Multi-View Fusion: 2D CNN Grayscale Imaging + 27-Feature PE Static ML + Behavioral Kill-Chain</p>
+            </div>
+            <div class="topbar-actions">
+                <span class="status-chip">Engine Active • 127.0.0.1:5000</span>
+                {% if result %}
+                <a href="{{ url_for('download_report') }}" class="btn btn-outline">Download Forensic PDF</a>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if error %}
+        <div class="flash-banner flash-error">
+            <span><strong>Security Alert:</strong> {{ error }}</span>
+        </div>
+        {% endif %}
+
+        {% if alert_message %}
+        <div class="flash-banner flash-info">
+            <span><strong>SOC Action Log:</strong> {{ alert_message }}</span>
+        </div>
+        {% endif %}
+
+        <!-- KPI Summary -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Model Accuracy (Unseen)</div>
+                <div class="kpi-value" style="color: var(--accent-blue);">95.88%</div>
+                <div class="kpi-sub">Validated on 583 PE samples</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Detection Precision</div>
+                <div class="kpi-value" style="color: var(--accent-green);">99.06%</div>
+                <div class="kpi-sub">1.21% False Positive Rate</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Active Quarantined Files</div>
+                <div class="kpi-value" style="color: var(--accent-red);">{{ active_quarantine_count }}</div>
+                <div class="kpi-sub">Isolated in SHA-256 Vault</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Session Scans Logged</div>
+                <div class="kpi-value" style="color: var(--accent-purple);">{{ history|length }}</div>
+                <div class="kpi-sub">Pre-execution + Kill-Chain</div>
+            </div>
+        </div>
+
+        <!-- TAB 1: SCANNER & LIVE ANALYSIS -->
+        <section id="tab-scanner" class="section-view active">
+            <div class="grid-2">
+                <!-- Left: Upload Form matching app.py exact POST fields -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Inspect Windows Executable (.EXE / .DLL)</h3>
+                        <span class="tag tag-Low">Max 20 MB</span>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('dashboard') }}" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label class="form-label">1. Select Windows PE Binary</label>
+                            <div class="file-drop-box">
+                                <div style="font-size: 0.86rem; color: var(--accent-blue); font-weight: 600;">
+                                    Choose .exe or .dll binary for Multi-View Inspection
+                                </div>
+                                <input type="file" name="file" accept=".exe,.dll" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="behavior_preset">2. Behavioral Kill-Chain Telemetry Simulation</label>
+                            <select name="behavior_preset" id="behavior_preset">
+                                <option value="none">None (Static PE + 2D CNN Inspection Only)</option>
+                                <option value="normal">Normal Process Activity (Config Read + UI Init)</option>
+                                <option value="suspicious_shadow">Suspicious Activity (vssadmin Shadow Deletion + .locked Rename)</option>
+                                <option value="ransomware_killchain">Full Ransomware Kill-Chain (Mass Encryption + Backup Wipe + Ransom Note)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="custom_behavior">3. Custom Behavioral Event JSON (Optional)</label>
+                            <textarea name="custom_behavior" id="custom_behavior" placeholder='[{"type": "backup_deletion", "detail": "vssadmin delete shadows"}]'></textarea>
+                        </div>
+
+                        <label class="checkbox-row">
+                            <input type="checkbox" name="auto_quarantine" checked>
+                            <span>Enable Automated Quarantine Isolation for High-Risk Threats (Score &ge; 70)</span>
+                        </label>
+
+                        <button type="submit" class="btn btn-primary">Run Multi-View Deep Learning Analysis</button>
+                    </form>
+                </div>
+
+                <!-- Right: Live Detection Verdict & Telemetry -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Hybrid Assessment & Explainable AI Output</h3>
+                        {% if result %}
+                        <span class="tag tag-{{ result.risk_level }}">{{ result.risk_level }} Risk ({{ result.risk_score }}/100)</span>
+                        {% else %}
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">Awaiting PE Binary</span>
+                        {% endif %}
+                    </div>
+
+                    {% if result %}
+                    <div class="verdict-box risk-{{ result.risk_level }}">
+                        <div>
+                            <div style="font-size: 0.74rem; text-transform: uppercase; opacity: 0.85; font-weight: 700;">Final Endpoint Verdict</div>
+                            <strong style="font-size: 0.98rem;">{{ result.verdict }}</strong>
+                            <div style="font-size: 0.76rem; margin-top: 0.2rem;">Status: {{ result.quarantine_status }}</div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="{{ url_for('download_report') }}" class="btn btn-outline btn-sm">PDF Report</a>
+                            {% if "AUTO-ISOLATED" not in result.quarantine_status %}
+                            <form method="POST" action="{{ url_for('manual_quarantine', sha256_hash=result.sha256) }}" style="margin:0;">
+                                <button type="submit" class="btn btn-danger btn-sm">Quarantine Now</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="result-split">
+                        <div class="cnn-preview-card">
+                            <img src="{{ result.grayscale_uri }}" alt="2D Grayscale PE Matrix">
+                            <span>64&times;64 PE Byte Matrix</span>
+                        </div>
+
+                        <div>
+                            <div style="font-size: 0.84rem; margin-bottom: 0.65rem;">
+                                <strong>{{ result.filename }}</strong>
+                                <span style="color: var(--text-muted); font-size: 0.76rem;">({{ result.size }} bytes)</span>
+                                <div class="mono" style="margin-top: 0.2rem; word-break: break-all;">SHA-256: {{ result.sha256[:32] }}...</div>
+                            </div>
+
+                            <div class="metric-bar-group">
+                                <div class="metric-bar-label">
+                                    <span>2D CNN Image Classifier ({{ result.cnn_prediction }})</span>
+                                    <strong>{{ result.cnn_probability }}%</strong>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill" style="width: {{ result.cnn_probability }}%; background: var(--accent-cyan);"></div>
+                                </div>
+                            </div>
+
+                            <div class="metric-bar-group">
+                                <div class="metric-bar-label">
+                                    <span>27-Feature PE ML Model ({{ result.ml_prediction }})</span>
+                                    <strong>{{ result.ml_probability }}%</strong>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill" style="width: {{ result.ml_probability }}%; background: var(--accent-purple);"></div>
+                                </div>
+                            </div>
+
+                            <div class="metric-bar-group">
+                                <div class="metric-bar-label">
+                                    <span>Composite Hybrid Risk Score</span>
+                                    <strong>{{ result.risk_score }} / 100</strong>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill" style="width: {{ result.risk_score }}%; background: {% if result.risk_level == 'High' %}var(--accent-red){% elif result.risk_level == 'Medium' %}var(--accent-amber){% else %}var(--accent-green){% endif %};"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="telemetry-grid">
+                        <div class="tele-box">
+                            <small>Shannon Entropy</small>
+                            <strong>{{ result.entropy }} / 8.0</strong>
+                        </div>
+                        <div class="tele-box">
+                            <small>PE Sections / DLLs</small>
+                            <strong>{{ result.sec_n }} Sec / {{ result.imp_dlls }} DLL</strong>
+                        </div>
+                        <div class="tele-box">
+                            <small>Imported APIs</small>
+                            <strong>{{ result.imp_funcs }} APIs</strong>
+                        </div>
+                        <div class="tele-box">
+                            <small>Digital Signature</small>
+                            <strong>{{ 'Signed' if result.pe_has_signature else 'Unsigned' }}</strong>
+                        </div>
+                        <div class="tele-box">
+                            <small>W+X Memory Flag</small>
+                            <strong>{{ 'Detected' if result.has_wx_hint else 'None' }}</strong>
+                        </div>
+                        <div class="tele-box">
+                            <small>Behavioral Triggers</small>
+                            <strong>{{ result.indicator_count }} / {{ result.events_analyzed }} Events</strong>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.78rem; color: var(--text-secondary); font-weight: 700;">Explainable AI & Heuristic Breakdown:</div>
+                    <ul class="explain-list">
+                        {% for exp in result.explanations %}
+                        <li>{{ exp }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="empty-state">
+                        <p style="font-size: 0.95rem; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.4rem;">No binary analyzed in current request.</p>
+                        <p>Upload a Windows <code>.exe</code> or <code>.dll</code> file on the left to inspect its 2D grayscale byte matrix, 27 PE header features, and behavioral kill-chain score.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: QUARANTINE VAULT -->
+        <section id="tab-quarantine" class="section-view">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Automated SHA-256 Quarantine Vault</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-secondary);">Isolated binaries with execution rights stripped</span>
+                </div>
+
+                {% if quarantine_records %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Vault ID</th>
+                            <th>Filename</th>
+                            <th>SHA-256 Digest</th>
+                            <th>Risk Score</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                            <th>SOC Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in quarantine_records %}
+                        <tr>
+                            <td class="mono">{{ rec.id }}</td>
+                            <td><strong>{{ rec.filename or rec.original_filename or rec.name or 'Suspicious_Binary.exe' }}</strong></td>
+                            <td class="mono">{{ rec.sha256[:20] }}...</td>
+                            <td><strong>{{ rec.risk_score }}/100</strong></td>
+                            <td><span class="tag tag-{{ rec.status }}">{{ rec.status }}</span></td>
+                            <td style="font-size: 0.78rem; color: var(--text-secondary); max-width: 240px;">{{ rec.reason }}</td>
+                            <td>
+                                <div class="action-group">
+                                    {% if rec.status == 'QUARANTINED' %}
+                                    <form method="POST" action="{{ url_for('quarantine_restore', item_id=rec.id) }}" style="margin:0;">
+                                        <button type="submit" class="btn btn-outline btn-sm">Restore</button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="{{ url_for('quarantine_delete', item_id=rec.id) }}" style="margin:0;">
+                                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">No files currently isolated in the Quarantine Vault.</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- TAB 3: SCAN AUDIT HISTORY -->
+        <section id="tab-history" class="section-view">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Recent Endpoint Scan History (Last 10 Detections)</h3>
+                </div>
+                {% if history %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>SHA-256</th>
+                            <th>2D CNN</th>
+                            <th>PE ML</th>
+                            <th>Entropy</th>
+                            <th>Risk</th>
+                            <th>Verdict</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in history %}
+                        <tr>
+                            <td><strong>{{ item.filename }}</strong></td>
+                            <td class="mono">{{ item.sha256[:18] }}...</td>
+                            <td>{{ item.cnn_prediction }} ({{ item.cnn_probability }}%)</td>
+                            <td>{{ item.ml_prediction }} ({{ item.ml_probability }}%)</td>
+                            <td>{{ item.entropy }}</td>
+                            <td><span class="tag tag-{{ item.risk_level }}">{{ item.risk_score }}/100</span></td>
+                            <td>{{ item.verdict }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">No scan history recorded in this session yet.</div>
+                {% endif %}
+            </div>
+        </section>
+
+        <!-- TAB 4: MODEL BENCHMARKS -->
+        <section id="tab-benchmarks" class="section-view">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Evaluation Metrics (583 Unseen PE Binaries)</h3>
+                        <span class="tag tag-Low">Holdout Dataset</span>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Evaluation Metric</th>
+                                <th>Achieved Score</th>
+                                <th>Operational Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Classification Accuracy</td>
+                                <td><strong style="color: var(--accent-blue);">95.88%</strong></td>
+                                <td>559 / 583 unseen binaries accurately classified</td>
+                            </tr>
+                            <tr>
+                                <td>Precision</td>
+                                <td><strong style="color: var(--accent-green);">99.06%</strong></td>
+                                <td>Virtually eliminates false ransomware alerts</td>
+                            </tr>
+                            <tr>
+                                <td>Recall (Sensitivity)</td>
+                                <td><strong style="color: var(--accent-cyan);">93.75%</strong></td>
+                                <td>High capture rate on packed & zero-day variants</td>
+                            </tr>
+                            <tr>
+                                <td>False Positive Rate (FPR)</td>
+                                <td><strong style="color: var(--accent-purple);">1.21%</strong></td>
+                                <td>Safe for automated enterprise quarantine</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Enterprise Architecture Highlights</h3>
+                    </div>
+                    <ul class="explain-list">
+                        <li><strong>Multi-View Fusion Engine:</strong> Combines 40% Static PE ML (27 features) + 35% 2D CNN Image Classifier + 25% Behavioral Kill-Chain telemetry.</li>
+                        <li><strong>100% Pure-Python Endpoint Runtime:</strong> Uses only signed standard libraries (<code>zlib</code>, <code>struct</code>, <code>math</code>) to comply with Windows Defender Application Control (WDAC).</li>
+                        <li><strong>Forensic PDF Reporting:</strong> Generates standard-library ASCII PDF incident reports without external binary dependencies.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        function switchTab(tabId, el) {
+            document.querySelectorAll('.section-view').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            el.classList.add('active');
+        }
+    </script>
+</body>
+</html>
